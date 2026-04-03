@@ -10,9 +10,21 @@ import yfinance as yf
 # CONFIG
 # =========================
 
-import os
-BOT_ = os.getenv("BOT_")
-CHAT_ID = os.getenv("CHAT_ID")
+def send_telegram(msg: str):
+    if not BOT_TOKEN or not CHAT_ID:
+        print("❌ Lipsesc BOT_TOKEN sau CHAT_ID")
+        return
+
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": msg
+    }
+
+    try:
+        requests.post(url, json=payload, timeout=15)
+    except Exception as e:
+        print("Telegram error:", e)
 
 
 SYMBOLS = {
