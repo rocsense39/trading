@@ -26,8 +26,6 @@ def send_telegram(msg: str):
     except Exception as e:
         print("Telegram error:", e)
         
-        
-
 SYMBOLS = {
     "SGLD": "SGLD.L",
     "XLEP": "XLEP.L",
