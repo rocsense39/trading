@@ -25,7 +25,8 @@ def send_telegram(msg: str):
         requests.post(url, json=payload, timeout=15)
     except Exception as e:
         print("Telegram error:", e)
-
+        
+        
 
 SYMBOLS = {
     "SGLD": "SGLD.L",
