@@ -1,3 +1,4 @@
+import os
 import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -10,22 +11,9 @@ import yfinance as yf
 # CONFIG
 # =========================
 
-def send_telegram(msg: str):
-    if not BOT_TOKEN or not CHAT_ID:
-        print("❌ Lipsesc BOT_TOKEN sau CHAT_ID")
-        return
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
 
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": CHAT_ID,
-        "text": msg
-    }
-
-    try:
-        requests.post(url, json=payload, timeout=15)
-    except Exception as e:
-        print("Telegram error:", e)
-        
 SYMBOLS = {
     "SGLD": "SGLD.L",
     "XLEP": "XLEP.L",
@@ -52,12 +40,22 @@ last_alerts = {}
 # TELEGRAM
 # =========================
 def send_telegram(msg: str):
+    if not BOT_TOKEN or not CHAT_ID:
+        print("❌ Lipsesc BOT_TOKEN sau CHAT_ID")
+        return
+
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": CHAT_ID,
         "text": msg
     }
-    requests.post(url, json=payload, timeout=15)
+
+    try:
+        response = requests.post(url, json=payload, timeout=15)
+        if response.status_code != 200:
+            print("Telegram API error:", response.status_code, response.text)
+    except Exception as e:
+        print("Telegram error:", e)
 
 # =========================
 # DATA
@@ -101,8 +99,6 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
 # HELPERS
 # =========================
 def fmt(x: float) -> str:
-    if x >= 100:
-        return f"{x:.2f}"
     if x >= 10:
         return f"{x:.2f}"
     return f"{x:.4f}"
@@ -136,8 +132,6 @@ def analyze(name: str, symbol: str) -> str | None:
     prev = df.iloc[-2]
 
     close = safe_float(last["Close"])
-    high = safe_float(last["High"])
-    low = safe_float(last["Low"])
     ema20 = safe_float(last["EMA20"])
     ema50 = safe_float(last["EMA50"])
     atr = safe_float(last["ATR"])
@@ -153,7 +147,6 @@ def analyze(name: str, symbol: str) -> str | None:
     near_ema = abs(close - ema20) / close <= 0.005
     volume_ok = vol > vol_ma
     green_candle = close > safe_float(last["Open"])
-    atr_rising = atr > safe_float(prev["ATR"])
     breakout_ready = close > hh10 if hh10 > 0 else False
 
     score = 0
@@ -177,7 +170,6 @@ def analyze(name: str, symbol: str) -> str | None:
     if quality == "LOW":
         return None
 
-    # MEDIUM = watchlist only
     if quality == "MEDIUM":
         msg = (
             f"👀 {name}\n\n"
@@ -195,7 +187,6 @@ def analyze(name: str, symbol: str) -> str | None:
         last_alerts[name] = candle_key
         return msg
 
-    # HIGH = full setup
     entry = close
     sl = min(float(df.tail(5)["Low"].min()), entry - 1.2 * atr)
     tp = entry + RR * (entry - sl)
@@ -223,6 +214,10 @@ def analyze(name: str, symbol: str) -> str | None:
 # MAIN LOOP
 # =========================
 def run():
+    if not BOT_TOKEN or not CHAT_ID:
+        print("❌ BOT_TOKEN sau CHAT_ID nu sunt setate.")
+        return
+
     send_telegram("✅ SAFE BOT v2 pornit: MEDIUM=WATCHLIST, HIGH=setup complet")
     print("Bot rulează...")
 
@@ -241,4 +236,5 @@ def run():
 
         time.sleep(SLEEP_SECONDS)
 
-run()
+if __name__ == "__main__":
+    run()
