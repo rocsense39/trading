@@ -11,7 +11,7 @@ import yfinance as yf
 # =========================
 
 import os
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_ = os.getenv("BOT_")
 CHAT_ID = os.getenv("CHAT_ID")
 
 
@@ -41,7 +41,7 @@ last_alerts = {}
 # TELEGRAM
 # =========================
 def send_telegram(msg: str):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": CHAT_ID,
         "text": msg
