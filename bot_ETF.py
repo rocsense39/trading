@@ -9,7 +9,7 @@ import yfinance as yf
 # =========================
 # CONFIG
 # =========================
-TOKEN = "8581114074:AAFS55UBbtGPQR0NAzBYc3QOpDYFOzqY1A"
+TOKEN = "8581114074:AAFS55UBbtGPQR0NAzBYc3QOpDYFQzqY1A"
 CHAT_ID = "8631997789"
 
 
