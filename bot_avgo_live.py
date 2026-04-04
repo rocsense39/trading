@@ -6,9 +6,8 @@ import pandas as pd
 import requests
 import yfinance as yf
 
-import os
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
+TOKEN = "8581114074:AAFS55UBbtGPQR0NAzBYc3QOpDYFOzqY1A"
+CHAT_ID = "8631997789"
 
 
 SYMBOLS = ["GLW", "AXTI", "JNJ"]
