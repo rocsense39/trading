@@ -11,8 +11,8 @@ import yfinance as yf
 # CONFIG
 # =========================
 
-BOT_TOKEN = os.getenv("8581114074:AAFS55UBbtGPQR0NAzBYc3QOpDYFQzqY1A")
-CHAT_ID = os.getenv("8631997789")
+BOT_TOKEN = os.environ["BOT_TOKEN"]
+CHAT_ID = os.environ["CHAT_ID"]
 
 SYMBOLS = {
     "SGLD": "SGLD.L",
