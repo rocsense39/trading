@@ -14,34 +14,27 @@ import yfinance as yf
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHAT_ID = os.environ["CHAT_ID"]
 
-# Prioritare = poziții deja deschise / urmărite direct
 SYMBOLS = {
-    "IUHC": {"yf": "IUHC.L", "type": "ETF", "priority": True},
-    "SPYN": {"yf": "SPYN.DE", "type": "ETF", "priority": True},
-    "ESIE": {"yf": "ESIE.DE", "type": "ETF", "priority": True},
-    "XLEP": {"yf": "XLEP.L", "type": "ETF", "priority": True},
-    "JNJ":  {"yf": "JNJ", "type": "STOCK", "priority": True},
-    "SGLD": {"yf": "SGLD.L", "type": "ETC", "priority": True},
+    # PRIORITARE = cele pe care le urmărești / le ai deja
+    "IUHC": {"yf": "IUHC.L", "kind": "ETF", "priority": True},
+    "SPYN": {"yf": "SPYN.DE", "kind": "ETF", "priority": True},
+    "ESIE": {"yf": "ESIE.DE", "kind": "ETF", "priority": True},
+    "XLEP": {"yf": "XLEP.L", "kind": "ETF", "priority": True},
+    "JNJ":  {"yf": "JNJ", "kind": "STOCK", "priority": True},
+    "SGLD": {"yf": "SGLD.L", "kind": "ETC", "priority": True},
 
-    # Secundare = watchlist
-    "AXTI": {"yf": "AXTI", "type": "STOCK", "priority": False},
-    "AAOI": {"yf": "AAOI", "type": "STOCK", "priority": False},
-    "ABBV": {"yf": "ABBV", "type": "STOCK", "priority": False},
-    "H411": {"yf": "H411.DE", "type": "ETF", "priority": False},
-    "SGLD_UK": {"yf": "SGLD.L", "type": "ETC", "priority": False},  # opțional redundant
-    "ARTL": {"yf": "ARTL", "type": "STOCK", "priority": False},
-    "XOM": {"yf": "XOM", "type": "STOCK", "priority": False},
-}
-
-# ENUM.DE poate să nu fie disponibil corect în yfinance.
-# Dacă nu descarcă date, îl poți comenta.
-OPTIONAL_SYMBOLS = {
-    "ENUM": {"yf": "ENUM.DE", "type": "ETF", "priority": False},
+    # WATCHLIST
+    "AXTI": {"yf": "AXTI", "kind": "STOCK", "priority": False},
+    "AAOI": {"yf": "AAOI", "kind": "STOCK", "priority": False},
+    "ABBV": {"yf": "ABBV", "kind": "STOCK", "priority": False},
+    "H411": {"yf": "H411.DE", "kind": "ETF", "priority": False},
+    "ARTL": {"yf": "ARTL", "kind": "STOCK", "priority": False},
+    "XOM":  {"yf": "XOM", "kind": "STOCK", "priority": False},
 }
 
 INTERVAL = "1h"
 PERIOD = "3mo"
-SLEEP_SECONDS = 900  # 15 min
+SLEEP_SECONDS = 900   # 15 min
 TZ = ZoneInfo("Europe/Berlin")
 
 EMA_FAST = 20
@@ -50,10 +43,9 @@ ATR_LEN = 14
 VOL_MA_LEN = 20
 RR = 2.0
 
-# praguri
-NEAR_EMA_PCT = 0.005          # 0.5%
-BREAKOUT_BUFFER_ATR = 0.15    # breakout entry = HH10 + 0.15*ATR
-DIP_BUFFER_ATR = 0.10         # buy dip = EMA20 + 0.10*ATR
+NEAR_EMA_PCT = 0.005
+BREAKOUT_BUFFER_ATR = 0.15
+DIP_BUFFER_ATR = 0.10
 TREND_STRENGTH_MIN = 0.0025
 
 last_alerts = {}
@@ -115,7 +107,6 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df["HH_10"] = df["High"].shift(1).rolling(10).max()
     df["LL_10"] = df["Low"].shift(1).rolling(10).min()
     df["LOW_5"] = df["Low"].shift(1).rolling(5).min()
-    df["HIGH_5"] = df["High"].shift(1).rolling(5).max()
 
     return df.dropna()
 
@@ -123,8 +114,6 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
 # HELPERS
 # =========================
 def fmt(x: float) -> str:
-    if x >= 100:
-        return f"{x:.2f}"
     if x >= 10:
         return f"{x:.2f}"
     return f"{x:.4f}"
@@ -142,20 +131,14 @@ def get_quality(score: int) -> str:
         return "MEDIUM"
     return "LOW"
 
-def risk_reward(entry: float, sl: float) -> float:
-    return entry - sl
-
-def build_candle_key(name: str, df: pd.DataFrame) -> str:
+def make_key(name: str, df: pd.DataFrame) -> str:
     return f"{name}_{df.index[-1]}"
 
 # =========================
 # ANALYSIS
 # =========================
 def analyze(name: str, info: dict) -> str | None:
-    symbol = info["yf"]
-    priority = info["priority"]
-
-    df = get_data(symbol)
+    df = get_data(info["yf"])
     if df.empty or len(df) < 80:
         return None
 
@@ -169,16 +152,13 @@ def analyze(name: str, info: dict) -> str | None:
     close = safe_float(last["Close"])
     open_ = safe_float(last["Open"])
     high = safe_float(last["High"])
-    low = safe_float(last["Low"])
     ema20 = safe_float(last["EMA20"])
     ema50 = safe_float(last["EMA50"])
     atr = safe_float(last["ATR"])
     vol = safe_float(last["Volume"])
     vol_ma = safe_float(last["VOL_MA"])
     hh10 = safe_float(last["HH_10"])
-    ll10 = safe_float(last["LL_10"])
     low5 = safe_float(last["LOW_5"])
-    high5 = safe_float(last["HIGH_5"])
 
     prev_close = safe_float(prev["Close"])
     prev_ema20 = safe_float(prev["EMA20"])
@@ -186,26 +166,16 @@ def analyze(name: str, info: dict) -> str | None:
     if atr <= 0 or close <= 0:
         return None
 
-    # Trend & structure
     trend_bull = close > ema20 > ema50
-    strong_trend = (ema20 - ema50) / close > TREND_STRENGTH_MIN
     above_ema50 = close > ema50
     near_ema20 = abs(close - ema20) / close <= NEAR_EMA_PCT
+    strong_trend = (ema20 - ema50) / close > TREND_STRENGTH_MIN
     green_candle = close > open_
     volume_ok = vol > vol_ma if vol_ma > 0 else False
 
-    # breakout / dip logic
-    breakout_trigger = hh10 + BREAKOUT_BUFFER_ATR * atr if hh10 > 0 else 0.0
-    dip_trigger = ema20 + DIP_BUFFER_ATR * atr if ema20 > 0 else 0.0
+    breakout_ready = close > hh10 if hh10 > 0 else False
+    pullback_ok = above_ema50 and prev_close <= prev_ema20 * 1.003 and close >= ema20
 
-    breakout_ready = close > hh10 and high > hh10 if hh10 > 0 else False
-    pullback_ok = (
-        above_ema50 and
-        prev_close <= prev_ema20 * 1.003 and
-        close >= ema20
-    )
-
-    # Scoring
     score = 0
     if trend_bull:
         score += 1
@@ -222,17 +192,15 @@ def analyze(name: str, info: dict) -> str | None:
 
     quality = get_quality(score)
 
-    candle_key = build_candle_key(name, df)
+    candle_key = make_key(name, df)
     if last_alerts.get(name) == candle_key:
         return None
 
-    # 1) Weak / no setup
     if quality == "LOW":
         return None
 
-    # 2) HOLD / MANAGE zone for existing positions
-    # bun pentru instrumentele prioritare deja deținute
-    if priority and close > ema50 and quality in ["MEDIUM", "HIGH"] and not breakout_ready and not pullback_ok:
+    # HOLD / MANAGE pentru prioritare deja deținute
+    if info["priority"] and above_ema50 and not breakout_ready and not pullback_ok:
         msg = (
             f"🟡 {name}\n\n"
             f"Status: HOLD / MANAGE\n"
@@ -242,22 +210,21 @@ def analyze(name: str, info: dict) -> str | None:
             f"EMA50: {fmt(ema50)}\n"
             f"ATR: {fmt(atr)}\n\n"
             f"Acțiune:\n"
-            f"• Nu adăuga acum\n"
-            f"• Păstrează doar dacă rămâne peste EMA50\n"
-            f"• Caută fie breakout, fie retragere mai curată spre EMA20\n\n"
+            f"• nu adăuga acum\n"
+            f"• păstrează doar cât timp stă peste EMA50\n"
+            f"• urmărește breakout sau dip mai curat\n\n"
             f"Calitate: {quality}"
         )
         last_alerts[name] = candle_key
         return msg
 
-    # 3) BUY THE DIP
+    # BUY THE DIP
     if trend_bull and pullback_ok:
-        entry = dip_trigger
+        entry = ema20 + DIP_BUFFER_ATR * atr
         sl = min(low5, ema50 - 0.25 * atr, entry - 1.2 * atr)
-        rr_unit = risk_reward(entry, sl)
-        if rr_unit <= 0:
+        if entry <= sl:
             return None
-        tp = entry + RR * rr_unit
+        tp = entry + RR * (entry - sl)
 
         msg = (
             f"🟢 {name}\n\n"
@@ -271,21 +238,18 @@ def analyze(name: str, info: dict) -> str | None:
             f"EMA20: {fmt(ema20)}\n"
             f"EMA50: {fmt(ema50)}\n"
             f"ATR: {fmt(atr)}\n\n"
-            f"Condiție:\n"
-            f"• intrare doar pe retragere controlată, nu la chasing\n\n"
             f"Calitate: {quality}"
         )
         last_alerts[name] = candle_key
         return msg
 
-    # 4) BREAKOUT
+    # BREAKOUT
     if trend_bull and hh10 > 0 and close >= ema20:
-        entry = breakout_trigger
+        entry = hh10 + BREAKOUT_BUFFER_ATR * atr
         sl = min(low5, entry - 1.25 * atr)
-        rr_unit = risk_reward(entry, sl)
-        if rr_unit <= 0:
+        if entry <= sl:
             return None
-        tp = entry + RR * rr_unit
+        tp = entry + RR * (entry - sl)
 
         msg = (
             f"🚀 {name}\n\n"
@@ -296,18 +260,17 @@ def analyze(name: str, info: dict) -> str | None:
             f"• Buy Stop: {fmt(entry)}\n"
             f"• SL: {fmt(sl)}\n"
             f"• TP: {fmt(tp)}\n\n"
-            f"Nivel cheie:\n"
-            f"• HH10: {fmt(hh10)}\n"
-            f"• EMA20: {fmt(ema20)}\n"
-            f"• EMA50: {fmt(ema50)}\n\n"
-            f"Condiție:\n"
-            f"• intrare doar dacă sparge rezistența, nu înainte\n\n"
+            f"HH10: {fmt(hh10)}\n"
+            f"EMA20: {fmt(ema20)}\n"
+            f"EMA50: {fmt(ema50)}\n"
+            f"ATR: {fmt(atr)}\n\n"
             f"Calitate: {quality}"
         )
         last_alerts[name] = candle_key
         return msg
 
-    # 5) WATCHLIST
+    # WATCHLIST
+    entry_watch = hh10 + BREAKOUT_BUFFER_ATR * atr if hh10 > 0 else close
     msg = (
         f"👀 {name}\n\n"
         f"Status: WATCHLIST\n"
@@ -317,8 +280,8 @@ def analyze(name: str, info: dict) -> str | None:
         f"EMA50: {fmt(ema50)}\n"
         f"ATR: {fmt(atr)}\n\n"
         f"Așteaptă:\n"
-        f"• BUY THE DIP aproape de EMA20\n"
-        f"• sau BREAKOUT peste {fmt(breakout_trigger)}\n\n"
+        f"• dip spre EMA20\n"
+        f"• sau breakout peste {fmt(entry_watch)}\n\n"
         f"Calitate: {quality}"
     )
     last_alerts[name] = candle_key
@@ -334,7 +297,7 @@ def run():
 
     send_telegram(
         "✅ SAFE BOT v3 pornit\n"
-        "Logica nouă:\n"
+        "Moduri active:\n"
         "• BUY THE DIP\n"
         "• BREAKOUT\n"
         "• HOLD / MANAGE\n"
@@ -342,21 +305,14 @@ def run():
     )
     print("Bot rulează...")
 
-    # simboluri active
-    active_symbols = SYMBOLS.copy()
-
-    # dacă vrei să testezi și ENUM, decomentezi:
-    # active_symbols.update(OPTIONAL_SYMBOLS)
+    ordered_items = sorted(
+        SYMBOLS.items(),
+        key=lambda x: (not x[1]["priority"], x[0])
+    )
 
     while True:
         now = datetime.now(TZ).strftime("%Y-%m-%d %H:%M:%S")
         print(f"[{now}] Scan...")
-
-        # întâi prioritarele, apoi watchlist
-        ordered_items = sorted(
-            active_symbols.items(),
-            key=lambda x: (not x[1]["priority"], x[0])
-        )
 
         for name, info in ordered_items:
             try:
