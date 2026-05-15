@@ -480,7 +480,7 @@ def analyze_etf(name: str, meta: dict, config: dict, regime: str, regime_details
 "
                 f"Alocare disponibilă pentru {name}: <b>{allocation_ron:.0f} RON</b>"
             )
-            messages.append(msg)
+            messages.append(Fix multiline f-string)
 
     if trend_ok and near_ema20 and close_ >= ema20:
         setup = "ETF_EMA20_ENTRY"
