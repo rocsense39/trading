@@ -1,7 +1,7 @@
 """
 DCA + Swing Alert Bot pentru Google Colab
 Strategie:
-1) ETF core / DCA oportunist: SXR8, SXRV, XXME, H411
+1) ETF core / DCA oportunist: SXR8, SXRV, XMME, H411
    - nu cumpără automat; trimite alerte pentru Buy Limit zones
    - folosește trend, EMA20/EMA50, ATR și retrageri procentuale
 2) Swing satelit: AAOI, AIFS etc.
@@ -74,10 +74,10 @@ SYMBOLS = {
         "label": "iShares Nasdaq 100 UCITS ETF",
         "target_weight": 0.30,
     },
-    "XXME": {
+    "XMME": {
         "type": "ETF_CORE",
-        "xtb_symbol": "XXME.DE",
-        "yf_symbol": "XXME.DE",
+        "xtb_symbol": "XMME.DE",
+        "yf_symbol": "XMME.DE",
         "label": "MSCI Emerging Markets / EM ETF",
         "target_weight": 0.15,
     },
@@ -100,7 +100,7 @@ SYMBOLS = {
     "AIFS": {
         "type": "SWING",
         "xtb_symbol": "AIFS.US",
-        "yf_symbol": "AIFS",
+        "yf_symbol": "AIFS.DE",
         "label": "AIFS",
         "max_allocation_pct": 3,
     },
