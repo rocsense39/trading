@@ -438,29 +438,17 @@ def analyze_etf(name: str, meta: dict, config: dict, regime: str, regime_details
             qty_secondary = ron_to_asset_amount(config, allocation_ron * 0.40, secondary_limit, currency)
 
             msg = (
-                f"📌 <b>{name} — PUNE BUY LIMIT DCA</b>
-"
-                f"{meta['label']}
-"
-                f"XTB: <b>{meta['xtb_symbol']}</b> | Yahoo: <b>{meta['yf_symbol']}</b>
-"
-                f"Regime: <b>{regime}</b> ({regime_details})
-
-"
-                f"Preț actual: <b>{fmt(close_)}</b>
-"
-                f"EMA20: {fmt(ema20)} | EMA50: {fmt(ema50)} | ATR: {fmt(atr)}
-
-"
-                f"Ordin(e) Buy Limit recomandate:
-"
-                f"• Principal 60%: <b>{fmt(primary_limit)}</b> | buget {allocation_ron * 0.60:.0f} RON | qty est. {qty_primary:.4f}
-"
-                f"• Secundar 40%: <b>{fmt(secondary_limit)}</b> | buget {allocation_ron * 0.40:.0f} RON | qty est. {qty_secondary:.4f}
-
-"
-                f"Logică: DCA oportunist sub prețul curent, nu market chase."
-            )
+    f"📌 <b>{name} — PUNE BUY LIMIT DCA</b>\n"
+    f"{meta['label']}\n"
+    f"XTB: <b>{meta['xtb_symbol']}</b> | Yahoo: <b>{meta['yf_symbol']}</b>\n"
+    f"Regime: <b>{regime}</b> ({regime_details})\n\n"
+    f"Preț actual: <b>{fmt(close_)}</b>\n"
+    f"EMA20: {fmt(ema20)} | EMA50: {fmt(ema50)} | ATR: {fmt(atr)}\n\n"
+    f"Ordin(e) Buy Limit recomandate:\n"
+    f"• Principal 60%: <b>{fmt(primary_limit)}</b> | buget {allocation_ron * 0.60:.0f} RON | qty est. {qty_primary:.4f}\n"
+    f"• Secundar 40%: <b>{fmt(secondary_limit)}</b> | buget {allocation_ron * 0.40:.0f} RON | qty est. {qty_secondary:.4f}\n\n"
+    f"Logică: DCA oportunist sub prețul curent, nu market chase."
+)
             messages.append(msg)
 
     if strong_trend and extended:
