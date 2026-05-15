@@ -455,7 +455,7 @@ def analyze_etf(name: str, meta: dict, config: dict, regime: str, regime_details
         setup = "ETF_EXTENDED"
         if alert_once(name, setup, candle_time, min_hours):
             qty_236 = ron_to_asset_amount(config, allocation_ron, zones["23.6%"], currency)
-                        msg = (
+            msg = (
                 f"🟡 <b>{name} — DCA WAIT / SET LIMITS</b>\n"
                 f"{meta['label']}\n"
                 f"XTB: <b>{meta['xtb_symbol']}</b> | Yahoo: <b>{meta['yf_symbol']}</b>\n"
