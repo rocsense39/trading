@@ -1,21 +1,18 @@
 """
-Bot_DCA V2 Clean
-================
+Bot_DCA V2.1 Clean
+==================
 Google Colab + Telegram alert bot pentru:
-1) ETF DCA oportunist: SXR8, SXRV, XMME/XXME, H411, opțional aur
-2) Swing satelit: AAOI, AIFS etc., limitat la 1-5% din portofoliu
-3) Config separat în JSON: buget, poziții, watchlist, alocări
+1) ETF DCA oportunist: SXR8, SXRV, XXME/XMME, H411, optional SGLD
+2) Alerte exacte: PUNE BUY LIMIT + BUY LIMIT HIT
+3) Market regime: SPY, QQQ, VIX => RISK ON / NEUTRAL / RISK OFF
+4) Swing satelit: AAOI, AIFS etc. cu Buy Limit / Buy Stop / Sell Stop / TP / trailing
+5) Config separat in JSON: config_portfolio.json
 
-Fișiere recomandate în GitHub:
-- bot_dca_v2.py
-- config_portfolio.json
-- requirements.txt
-
-Rulare în Colab:
+Rulare Colab:
 %cd /content/trading
 !python bot_dca_v2.py
 
-Setare token în Colab:
+Setare token in Colab:
 import os, getpass
 os.environ["TELEGRAM_TOKEN"] = getpass.getpass("TELEGRAM_TOKEN: ").strip()
 os.environ["TELEGRAM_CHAT_ID"] = getpass.getpass("TELEGRAM_CHAT_ID: ").strip()
@@ -37,6 +34,7 @@ import yfinance as yf
 # GLOBAL SETTINGS
 # =========================
 CONFIG_PATH = Path("config_portfolio.json")
+STATE_PATH = Path("bot_state.json")
 MKT_TZ = ZoneInfo("Europe/Berlin")
 INTERVAL = "1h"
 PERIOD = "6mo"
@@ -47,8 +45,6 @@ EMA_MID = 50
 EMA_SLOW = 150
 ATR_LEN = 20
 VOL_MA_LEN = 20
-
-last_alerts: dict[str, str] = {}
 
 
 # =========================
@@ -143,7 +139,7 @@ DEFAULT_CONFIG = {
 
 
 # =========================
-# CONFIG HANDLING
+# CONFIG + STATE
 # =========================
 def create_default_config_if_missing() -> None:
     if CONFIG_PATH.exists():
@@ -157,6 +153,21 @@ def load_config() -> dict:
     create_default_config_if_missing()
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def load_state() -> dict:
+    if not STATE_PATH.exists():
+        return {"alerts": {}}
+    try:
+        with open(STATE_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {"alerts": {}}
+
+
+def save_state(state: dict) -> None:
+    with open(STATE_PATH, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
 
 
 # =========================
@@ -234,6 +245,7 @@ def drop_incomplete_candle(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
     df["EMA20"] = df["Close"].ewm(span=EMA_FAST, adjust=False).mean()
     df["EMA50"] = df["Close"].ewm(span=EMA_MID, adjust=False).mean()
     df["EMA150"] = df["Close"].ewm(span=EMA_SLOW, adjust=False).mean()
@@ -258,7 +270,11 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
 # UTILS
 # =========================
 def fmt(x: float) -> str:
-    if x is None or math.isnan(float(x)):
+    try:
+        x = float(x)
+    except Exception:
+        return "n/a"
+    if math.isnan(x):
         return "n/a"
     if abs(x) >= 100:
         return f"{x:.2f}"
@@ -286,16 +302,19 @@ def ron_to_asset_amount(config: dict, ron: float, price: float, currency: str) -
     return ron / (price * fx)
 
 
-def alert_once(name: str, setup: str, candle_time: str, min_hours: int) -> bool:
-    key = f"{name}:{setup}"
+def alert_once(state: dict, key: str, min_hours: int) -> bool:
     now_ts = pd.Timestamp.now(tz=MKT_TZ)
-    last = last_alerts.get(key)
+    last = state.setdefault("alerts", {}).get(key)
     if last:
-        last_time = pd.Timestamp(last)
-        diff_hours = (now_ts - last_time).total_seconds() / 3600
-        if diff_hours < min_hours:
-            return False
-    last_alerts[key] = now_ts.isoformat()
+        try:
+            last_time = pd.Timestamp(last)
+            diff_hours = (now_ts - last_time).total_seconds() / 3600
+            if diff_hours < min_hours:
+                return False
+        except Exception:
+            pass
+    state["alerts"][key] = now_ts.isoformat()
+    save_state(state)
     return True
 
 
@@ -313,6 +332,15 @@ def estimate_portfolio_value_ron(config: dict, latest_prices: dict[str, tuple[fl
         total += qty * price * get_fx(config, currency)
     total += float(config.get("settings", {}).get("cash_available_ron", 0))
     return total
+
+
+def fib_zones(low: float, high: float) -> dict[str, float]:
+    move = high - low
+    return {
+        "23.6%": high - 0.236 * move,
+        "38.2%": high - 0.382 * move,
+        "50.0%": high - 0.500 * move,
+    }
 
 
 # =========================
@@ -368,16 +396,7 @@ def classify_market_regime(config: dict) -> tuple[str, str]:
 # =========================
 # ETF DCA ENGINE
 # =========================
-def fib_zones(low: float, high: float) -> dict[str, float]:
-    move = high - low
-    return {
-        "23.6%": high - 0.236 * move,
-        "38.2%": high - 0.382 * move,
-        "50.0%": high - 0.500 * move,
-    }
-
-
-def analyze_etf(name: str, meta: dict, config: dict, regime: str, regime_details: str) -> list[str]:
+def analyze_etf(name: str, meta: dict, config: dict, state: dict, regime: str, regime_details: str) -> list[str]:
     df = get_data(meta["yf_symbol"])
     df = drop_incomplete_candle(df)
     if df.empty or len(df) < 180:
@@ -387,10 +406,11 @@ def analyze_etf(name: str, meta: dict, config: dict, regime: str, regime_details
         return []
 
     last = df.iloc[-1]
-    candle_time = df.index[-1].isoformat()
     min_hours = int(config.get("settings", {}).get("min_alert_interval_hours", 4))
 
     close_ = float(last["Close"])
+    high_ = float(last["High"])
+    low_ = float(last["Low"])
     ema20 = float(last["EMA20"])
     ema50 = float(last["EMA50"])
     ema150 = float(last["EMA150"])
@@ -418,19 +438,16 @@ def analyze_etf(name: str, meta: dict, config: dict, regime: str, regime_details
 
     messages = []
 
-    # 0) BuyLimit Plan: trimite exact ce limit ar avea sens ACUM, chiar dacă prețul nu a atins încă zona.
-    # Scop: să poți pune ordine limit în XTB pentru DCA oportunist, nu să stai cu ochii pe grafic.
-    if trend_ok and close_ > ema20:
-        setup = "ETF_BUYLIMIT_PLAN"
-        if alert_once(name, setup, candle_time, min_hours):
+    # 1) PLAN: anunta ce BuyLimit poti seta acum
+    if trend_ok and close_ > ema20 and allocation_ron > 0:
+        key = f"{name}:ETF_BUYLIMIT_PLAN"
+        if alert_once(state, key, min_hours):
             fib23 = zones["23.6%"]
             fib38 = zones["38.2%"]
 
-            # BuyLimit principal: zona cea mai apropiată dintre EMA20 și Fib 23.6%, dar sub prețul actual.
             candidates = [x for x in [ema20, fib23] if x < close_]
-            primary_limit = max(candidates) if candidates else ema20
+            primary_limit = max(candidates) if candidates else min(ema20, close_ * 0.995)
 
-            # BuyLimit secundar: zonă mai adâncă, pentru tranșă suplimentară.
             secondary_candidates = [x for x in [ema50, fib38] if x < primary_limit]
             secondary_limit = max(secondary_candidates) if secondary_candidates else min(ema50, fib38)
 
@@ -438,22 +455,58 @@ def analyze_etf(name: str, meta: dict, config: dict, regime: str, regime_details
             qty_secondary = ron_to_asset_amount(config, allocation_ron * 0.40, secondary_limit, currency)
 
             msg = (
-    f"📌 <b>{name} — PUNE BUY LIMIT DCA</b>\n"
-    f"{meta['label']}\n"
-    f"XTB: <b>{meta['xtb_symbol']}</b> | Yahoo: <b>{meta['yf_symbol']}</b>\n"
-    f"Regime: <b>{regime}</b> ({regime_details})\n\n"
-    f"Preț actual: <b>{fmt(close_)}</b>\n"
-    f"EMA20: {fmt(ema20)} | EMA50: {fmt(ema50)} | ATR: {fmt(atr)}\n\n"
-    f"Ordin(e) Buy Limit recomandate:\n"
-    f"• Principal 60%: <b>{fmt(primary_limit)}</b> | buget {allocation_ron * 0.60:.0f} RON | qty est. {qty_primary:.4f}\n"
-    f"• Secundar 40%: <b>{fmt(secondary_limit)}</b> | buget {allocation_ron * 0.40:.0f} RON | qty est. {qty_secondary:.4f}\n\n"
-    f"Logică: DCA oportunist sub prețul curent, nu market chase."
-)
+                f"📌 <b>{name} — PUNE BUY LIMIT DCA</b>\n"
+                f"{meta['label']}\n"
+                f"XTB: <b>{meta['xtb_symbol']}</b> | Yahoo: <b>{meta['yf_symbol']}</b>\n"
+                f"Regime: <b>{regime}</b> ({regime_details})\n\n"
+                f"Preț actual: <b>{fmt(close_)}</b>\n"
+                f"EMA20: {fmt(ema20)} | EMA50: {fmt(ema50)} | ATR: {fmt(atr)}\n\n"
+                f"Ordin(e) Buy Limit recomandate:\n"
+                f"• Principal 60%: <b>{fmt(primary_limit)}</b> | buget {allocation_ron * 0.60:.0f} RON | qty est. {qty_primary:.4f}\n"
+                f"• Secundar 40%: <b>{fmt(secondary_limit)}</b> | buget {allocation_ron * 0.40:.0f} RON | qty est. {qty_secondary:.4f}\n\n"
+                f"Logică: DCA oportunist sub prețul curent, nu market chase."
+            )
             messages.append(msg)
 
+    # 2) HIT: anunta cand pretul atinge zona de BuyLimit
+    if trend_ok and allocation_ron > 0:
+        fib23 = zones["23.6%"]
+        fib38 = zones["38.2%"]
+        primary_limit = max([x for x in [ema20, fib23] if x < max(close_, high_)] or [ema20])
+        secondary_limit = max([x for x in [ema50, fib38] if x < primary_limit] or [min(ema50, fib38)])
+
+        if low_ <= primary_limit <= high_:
+            key = f"{name}:ETF_BUYLIMIT_HIT_PRIMARY:{round(primary_limit, 2)}"
+            if alert_once(state, key, min_hours):
+                qty = ron_to_asset_amount(config, allocation_ron * 0.60, primary_limit, currency)
+                msg = (
+                    f"🔔 <b>{name} — BUY LIMIT HIT</b>\n"
+                    f"Prețul a atins zona principală DCA.\n"
+                    f"XTB: <b>{meta['xtb_symbol']}</b>\n"
+                    f"Buy Limit principal: <b>{fmt(primary_limit)}</b>\n"
+                    f"Buget: <b>{allocation_ron * 0.60:.0f} RON</b> | Qty est.: <b>{qty:.4f}</b>\n"
+                    f"Regime: <b>{regime}</b>"
+                )
+                messages.append(msg)
+
+        if low_ <= secondary_limit <= high_:
+            key = f"{name}:ETF_BUYLIMIT_HIT_SECONDARY:{round(secondary_limit, 2)}"
+            if alert_once(state, key, min_hours):
+                qty = ron_to_asset_amount(config, allocation_ron * 0.40, secondary_limit, currency)
+                msg = (
+                    f"🔔🟢 <b>{name} — BUY LIMIT DEEP HIT</b>\n"
+                    f"Prețul a atins zona secundară DCA.\n"
+                    f"XTB: <b>{meta['xtb_symbol']}</b>\n"
+                    f"Buy Limit secundar: <b>{fmt(secondary_limit)}</b>\n"
+                    f"Buget: <b>{allocation_ron * 0.40:.0f} RON</b> | Qty est.: <b>{qty:.4f}</b>\n"
+                    f"Regime: <b>{regime}</b>"
+                )
+                messages.append(msg)
+
+    # 3) EXTENDED: nu chase, seteaza limite
     if strong_trend and extended:
-        setup = "ETF_EXTENDED"
-        if alert_once(name, setup, candle_time, min_hours):
+        key = f"{name}:ETF_EXTENDED"
+        if alert_once(state, key, min_hours):
             qty_236 = ron_to_asset_amount(config, allocation_ron, zones["23.6%"], currency)
             msg = (
                 f"🟡 <b>{name} — DCA WAIT / SET LIMITS</b>\n"
@@ -468,11 +521,12 @@ def analyze_etf(name: str, meta: dict, config: dict, regime: str, regime_details
                 f"• 50.0%: <b>{fmt(zones['50.0%'])}</b>\n"
                 f"Alocare disponibilă pentru {name}: <b>{allocation_ron:.0f} RON</b>"
             )
-            messages.append(Fix multiline f-string)
+            messages.append(msg)
 
+    # 4) ENTRY la EMA20
     if trend_ok and near_ema20 and close_ >= ema20:
-        setup = "ETF_EMA20_ENTRY"
-        if alert_once(name, setup, candle_time, min_hours):
+        key = f"{name}:ETF_EMA20_ENTRY"
+        if alert_once(state, key, min_hours):
             buy_limit = min(close_, ema20 + 0.15 * atr)
             qty = ron_to_asset_amount(config, allocation_ron, buy_limit, currency)
             invalid = ema50 - 0.8 * atr
@@ -491,9 +545,10 @@ def analyze_etf(name: str, meta: dict, config: dict, regime: str, regime_details
             )
             messages.append(msg)
 
+    # 5) ENTRY la EMA50
     if close_ > ema150 and near_ema50:
-        setup = "ETF_EMA50_ENTRY"
-        if alert_once(name, setup, candle_time, min_hours):
+        key = f"{name}:ETF_EMA50_ENTRY"
+        if alert_once(state, key, min_hours):
             buy_limit = min(close_, ema50 + 0.2 * atr)
             qty = ron_to_asset_amount(config, allocation_ron, buy_limit, currency)
             msg = (
@@ -509,9 +564,10 @@ def analyze_etf(name: str, meta: dict, config: dict, regime: str, regime_details
             )
             messages.append(msg)
 
+    # 6) RISK WARNING
     if close_ < ema50 and float(last["EMA20"]) < ema50:
-        setup = "ETF_RISK_WARNING"
-        if alert_once(name, setup, candle_time, min_hours):
+        key = f"{name}:ETF_RISK_WARNING"
+        if alert_once(state, key, min_hours):
             msg = (
                 f"🔴 <b>{name} — DCA PRUDENȚĂ</b>\n"
                 f"Preț sub EMA50 și EMA20 < EMA50.\n"
@@ -527,7 +583,7 @@ def analyze_etf(name: str, meta: dict, config: dict, regime: str, regime_details
 # =========================
 # SWING ENGINE
 # =========================
-def analyze_swing(name: str, meta: dict, config: dict, regime: str) -> list[str]:
+def analyze_swing(name: str, meta: dict, config: dict, state: dict, regime: str) -> list[str]:
     if regime == "RISK OFF":
         return []
 
@@ -541,7 +597,6 @@ def analyze_swing(name: str, meta: dict, config: dict, regime: str) -> list[str]
 
     last = df.iloc[-1]
     prev = df.iloc[-2]
-    candle_time = df.index[-1].isoformat()
     min_hours = int(config.get("settings", {}).get("min_alert_interval_hours", 4))
 
     close_ = float(last["Close"])
@@ -573,8 +628,8 @@ def analyze_swing(name: str, meta: dict, config: dict, regime: str) -> list[str]
     messages = []
 
     if breakout and (volume_ok or atr > float(prev["ATR"])):
-        setup = "SWING_BREAKOUT"
-        if alert_once(name, setup, candle_time, min_hours):
+        key = f"{name}:SWING_BREAKOUT"
+        if alert_once(state, key, min_hours):
             entry = close_ + 0.10 * atr
             sl = float(meta.get("manual_stop") or max(ema20 - 1.2 * atr, close_ - 2.0 * atr))
             risk = max(entry - sl, 0.01)
@@ -598,8 +653,8 @@ def analyze_swing(name: str, meta: dict, config: dict, regime: str) -> list[str]
             messages.append(msg)
 
     if pullback:
-        setup = "SWING_PULLBACK"
-        if alert_once(name, setup, candle_time, min_hours):
+        key = f"{name}:SWING_PULLBACK"
+        if alert_once(state, key, min_hours):
             entry = min(close_, ema20 + 0.20 * atr)
             sl = float(meta.get("manual_stop") or (ema50 - 1.0 * atr))
             risk = max(entry - sl, 0.01)
@@ -625,8 +680,8 @@ def analyze_swing(name: str, meta: dict, config: dict, regime: str) -> list[str]
     if qty_pos > 0 and avg > 0:
         pnl_pct = (close_ / avg - 1) * 100
         if pnl_pct >= 8:
-            setup = "SWING_TRAIL_8"
-            if alert_once(name, setup, candle_time, min_hours):
+            key = f"{name}:SWING_TRAIL_8"
+            if alert_once(state, key, min_hours):
                 trail = max(avg, ema20 - 0.5 * atr)
                 msg = (
                     f"🔵 <b>{name} — TRAILING STOP</b>\n"
@@ -637,8 +692,8 @@ def analyze_swing(name: str, meta: dict, config: dict, regime: str) -> list[str]
                 messages.append(msg)
 
     if invalidation:
-        setup = "SWING_INVALIDATION"
-        if alert_once(name, setup, candle_time, min_hours):
+        key = f"{name}:SWING_INVALIDATION"
+        if alert_once(state, key, min_hours):
             msg = (
                 f"🔴 <b>{name} — SWING INVALIDATION</b>\n"
                 f"Preț: {fmt(close_)} | EMA50: {fmt(ema50)} | LL20: {fmt(ll20)}\n"
@@ -656,7 +711,7 @@ def send_startup_plan(config: dict) -> None:
     monthly = float(config["settings"].get("monthly_budget_ron", 500))
     cash = float(config["settings"].get("cash_available_ron", monthly))
     lines = [
-        "✅ <b>Bot_DCA V2 a pornit.</b>",
+        "✅ <b>Bot_DCA V2.1 a pornit.</b>",
         f"Buget lunar: <b>{monthly:.0f} RON</b>",
         f"Cash disponibil luna asta: <b>{cash:.0f} RON</b>",
         "",
@@ -668,25 +723,24 @@ def send_startup_plan(config: dict) -> None:
         w = float(meta.get("target_weight", 0))
         lines.append(f"• {name}: {w:.0%} = <b>{monthly * w:.0f} RON</b>")
 
-    lines.append("\nRegulă: DCA oportunist pe EMA20/EMA50/Fib, nu cumpărare automată în aceeași zi.")
+    lines.append("\nRegulă: botul trimite PUNE BUY LIMIT + BUY LIMIT HIT; nu cumpără automat.")
     send_telegram("\n".join(lines))
 
 
-def weekly_report_if_needed(config: dict, regime: str, regime_details: str) -> None:
+def weekly_report_if_needed(config: dict, state: dict, regime: str, regime_details: str) -> None:
     now = datetime.now(MKT_TZ)
     if now.weekday() != 6 or now.hour < 18:
         return
-    key = f"weekly:{now.date()}"
-    if last_alerts.get("weekly_report") == key:
+    key = f"weekly_report:{now.date()}"
+    if not alert_once(state, key, 24):
         return
-    last_alerts["weekly_report"] = key
 
     lines = [
         "📊 <b>Weekly Bot_DCA Review</b>",
         f"Regime: <b>{regime}</b>",
         regime_details,
         "",
-        "ETF focus săptămâna viitoare: așteaptă EMA20/EMA50 sau Fib; evită chase după lumânări extinse.",
+        "ETF: așteaptă EMA20/EMA50/Fib; evită chase după lumânări extinse.",
         "Swing: doar 1-5%, cu Sell Stop setat din start."
     ]
     send_telegram("\n".join(lines))
@@ -695,7 +749,7 @@ def weekly_report_if_needed(config: dict, regime: str, regime_details: str) -> N
 # =========================
 # MAIN LOOP
 # =========================
-def run_once(config: dict) -> None:
+def run_once(config: dict, state: dict) -> None:
     regime, regime_details = classify_market_regime(config)
     print(f"Market regime: {regime} | {regime_details}")
 
@@ -703,7 +757,7 @@ def run_once(config: dict) -> None:
         if not meta.get("enabled", True):
             continue
         try:
-            for msg in analyze_etf(name, meta, config, regime, regime_details):
+            for msg in analyze_etf(name, meta, config, state, regime, regime_details):
                 send_telegram(msg)
                 print(f"ETF alert sent: {name}")
         except Exception as e:
@@ -713,25 +767,27 @@ def run_once(config: dict) -> None:
         if not meta.get("enabled", True):
             continue
         try:
-            for msg in analyze_swing(name, meta, config, regime):
+            for msg in analyze_swing(name, meta, config, state, regime):
                 send_telegram(msg)
                 print(f"Swing alert sent: {name}")
         except Exception as e:
             print(f"Swing error {name}: {e}")
 
-    weekly_report_if_needed(config, regime, regime_details)
+    weekly_report_if_needed(config, state, regime, regime_details)
 
 
 def run() -> None:
     config = load_config()
+    state = load_state()
     send_startup_plan(config)
 
     sleep_seconds = int(config.get("settings", {}).get("sleep_seconds", SLEEP_SECONDS_DEFAULT))
     while True:
         now = datetime.now(MKT_TZ).strftime("%Y-%m-%d %H:%M:%S %Z")
-        print(f"[{now}] Bot_DCA V2 scan...")
+        print(f"[{now}] Bot_DCA V2.1 scan...")
         config = load_config()
-        run_once(config)
+        state = load_state()
+        run_once(config, state)
         time.sleep(sleep_seconds)
 
 
