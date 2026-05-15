@@ -418,21 +418,78 @@ def analyze_etf(name: str, meta: dict, config: dict, regime: str, regime_details
 
     messages = []
 
+    # 0) BuyLimit Plan: trimite exact ce limit ar avea sens ACUM, chiar dacă prețul nu a atins încă zona.
+    # Scop: să poți pune ordine limit în XTB pentru DCA oportunist, nu să stai cu ochii pe grafic.
+    if trend_ok and close_ > ema20:
+        setup = "ETF_BUYLIMIT_PLAN"
+        if alert_once(name, setup, candle_time, min_hours):
+            fib23 = zones["23.6%"]
+            fib38 = zones["38.2%"]
+
+            # BuyLimit principal: zona cea mai apropiată dintre EMA20 și Fib 23.6%, dar sub prețul actual.
+            candidates = [x for x in [ema20, fib23] if x < close_]
+            primary_limit = max(candidates) if candidates else ema20
+
+            # BuyLimit secundar: zonă mai adâncă, pentru tranșă suplimentară.
+            secondary_candidates = [x for x in [ema50, fib38] if x < primary_limit]
+            secondary_limit = max(secondary_candidates) if secondary_candidates else min(ema50, fib38)
+
+            qty_primary = ron_to_asset_amount(config, allocation_ron * 0.60, primary_limit, currency)
+            qty_secondary = ron_to_asset_amount(config, allocation_ron * 0.40, secondary_limit, currency)
+
+            msg = (
+                f"📌 <b>{name} — PUNE BUY LIMIT DCA</b>
+"
+                f"{meta['label']}
+"
+                f"XTB: <b>{meta['xtb_symbol']}</b> | Yahoo: <b>{meta['yf_symbol']}</b>
+"
+                f"Regime: <b>{regime}</b> ({regime_details})
+
+"
+                f"Preț actual: <b>{fmt(close_)}</b>
+"
+                f"EMA20: {fmt(ema20)} | EMA50: {fmt(ema50)} | ATR: {fmt(atr)}
+
+"
+                f"Ordin(e) Buy Limit recomandate:
+"
+                f"• Principal 60%: <b>{fmt(primary_limit)}</b> | buget {allocation_ron * 0.60:.0f} RON | qty est. {qty_primary:.4f}
+"
+                f"• Secundar 40%: <b>{fmt(secondary_limit)}</b> | buget {allocation_ron * 0.40:.0f} RON | qty est. {qty_secondary:.4f}
+
+"
+                f"Logică: DCA oportunist sub prețul curent, nu market chase."
+            )
+            messages.append(msg)
+
     if strong_trend and extended:
         setup = "ETF_EXTENDED"
         if alert_once(name, setup, candle_time, min_hours):
             qty_236 = ron_to_asset_amount(config, allocation_ron, zones["23.6%"], currency)
             msg = (
-                f"🟡 <b>{name} — DCA WAIT / SET LIMITS</b>\n"
-                f"{meta['label']}\n"
-                f"XTB: <b>{meta['xtb_symbol']}</b> | Yahoo: <b>{meta['yf_symbol']}</b>\n"
-                f"Regime: <b>{regime}</b> ({regime_details})\n\n"
-                f"Preț: <b>{fmt(close_)}</b> | EMA20: {fmt(ema20)} | EMA50: {fmt(ema50)}\n"
-                f"Status: trend bullish, dar preț extins. Nu chase.\n\n"
-                f"Buy Limit zones:\n"
-                f"• 23.6%: <b>{fmt(zones['23.6%'])}</b> | qty est.: {qty_236:.4f}\n"
-                f"• 38.2%: <b>{fmt(zones['38.2%'])}</b>\n"
-                f"• 50.0%: <b>{fmt(zones['50.0%'])}</b>\n"
+                f"🟡 <b>{name} — DCA WAIT / SET LIMITS</b>
+"
+                f"{meta['label']}
+"
+                f"XTB: <b>{meta['xtb_symbol']}</b> | Yahoo: <b>{meta['yf_symbol']}</b>
+"
+                f"Regime: <b>{regime}</b> ({regime_details})
+
+"
+                f"Preț: <b>{fmt(close_)}</b> | EMA20: {fmt(ema20)} | EMA50: {fmt(ema50)}
+"
+                f"Status: trend bullish, dar preț extins. Nu chase.
+
+"
+                f"Buy Limit zones:
+"
+                f"• 23.6%: <b>{fmt(zones['23.6%'])}</b> | qty est.: {qty_236:.4f}
+"
+                f"• 38.2%: <b>{fmt(zones['38.2%'])}</b>
+"
+                f"• 50.0%: <b>{fmt(zones['50.0%'])}</b>
+"
                 f"Alocare disponibilă pentru {name}: <b>{allocation_ron:.0f} RON</b>"
             )
             messages.append(msg)
