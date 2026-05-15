@@ -456,28 +456,16 @@ def analyze_etf(name: str, meta: dict, config: dict, regime: str, regime_details
         if alert_once(name, setup, candle_time, min_hours):
             qty_236 = ron_to_asset_amount(config, allocation_ron, zones["23.6%"], currency)
             msg = (
-                f"🟡 <b>{name} — DCA WAIT / SET LIMITS</b>
-"
-                f"{meta['label']}
-"
-                f"XTB: <b>{meta['xtb_symbol']}</b> | Yahoo: <b>{meta['yf_symbol']}</b>
-"
-                f"Regime: <b>{regime}</b> ({regime_details})
-
-"
-                f"Preț: <b>{fmt(close_)}</b> | EMA20: {fmt(ema20)} | EMA50: {fmt(ema50)}
-"
-                f"Status: trend bullish, dar preț extins. Nu chase.
-
-"
-                f"Buy Limit zones:
-"
-                f"• 23.6%: <b>{fmt(zones['23.6%'])}</b> | qty est.: {qty_236:.4f}
-"
-                f"• 38.2%: <b>{fmt(zones['38.2%'])}</b>
-"
-                f"• 50.0%: <b>{fmt(zones['50.0%'])}</b>
-"
+                f"🟡 <b>{name} — DCA WAIT / SET LIMITS</b>"
+                f"{meta['label']}"
+                f"XTB: <b>{meta['xtb_symbol']}</b> | Yahoo: <b>{meta['yf_symbol']}</b>"
+                f"Regime: <b>{regime}</b> ({regime_details})"
+                f"Preț: <b>{fmt(close_)}</b> | EMA20: {fmt(ema20)} | EMA50: {fmt(ema50)}"
+                f"Status: trend bullish, dar preț extins. Nu chase."
+                f"Buy Limit zones:"
+                f"• 23.6%: <b>{fmt(zones['23.6%'])}</b> | qty est.: {qty_236:.4f}"
+                f"• 38.2%: <b>{fmt(zones['38.2%'])}</b>"
+                f"• 50.0%: <b>{fmt(zones['50.0%'])}</b>"
                 f"Alocare disponibilă pentru {name}: <b>{allocation_ron:.0f} RON</b>"
             )
             messages.append(Fix multiline f-string)
