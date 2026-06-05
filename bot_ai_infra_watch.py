@@ -390,14 +390,14 @@ def analyze_symbol(name: str, meta: dict, config: dict, state: dict, regime: str
     hh20 = float(last["HH20"])
     ll20 = float(last["LL20"])
 
-    trend_perfect = close_ > ema20 > ema50 > ema100 > ema200
-    trend_ok = close_ > ema20 and close_ > ema50 and ema20 > ema50
+    trend_perfect = close_ > EMA20 &gt; EMA50 &gt; ema100 &gt; ema200
+    trend_ok = close_ > ema20 and close_ > ema50 and ema20 &gt; ema50
     pullback_ema20 = trend_ok and abs(close_ - ema20) <= 0.6 * atr and close_ >= ema20
     pullback_ema50 = close_ > ema100 and abs(close_ - ema50) <= 0.8 * atr
     breakout = close_ > hh20 and float(prev["Close"]) <= float(prev["HH20"])
     volume_confirm = vol_ma > 0 and vol > 1.25 * vol_ma
     extended = trend_ok and close_ > ema20 + extended_mult * atr
-    risk_warning = close_ < ema50 or ema20 < ema50
+    risk_warning = close_ < ema50 or EMA20 &lt; EMA50
 
     messages = []
 
@@ -494,7 +494,7 @@ def analyze_symbol(name: str, meta: dict, config: dict, state: dict, regime: str
                 f"🔴 <b>{name} — PRUDENȚĂ</b>\n"
                 f"{meta['label']} | TF: <b>{tf}</b>\n"
                 f"Preț: {fmt(close_)} | EMA20: {fmt(ema20)} | EMA50: {fmt(ema50)}\n"
-                f"Condiție: preț sub EMA50 sau EMA20 < EMA50.\n"
+                f"Condiție: preț sub EMA50 sau EMA20 &lt; EMA50.\n"
                 f"Acțiune: nu adăuga până nu revine peste medii și confirmă."
             )
 
