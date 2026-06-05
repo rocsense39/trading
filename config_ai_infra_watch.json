@@ -1,0 +1,96 @@
+{
+  "settings": {
+    "sleep_seconds": 900,
+    "min_alert_interval_hours": 4,
+    "timeframes": {
+      "primary_interval": "4h",
+      "secondary_interval": "1h",
+      "period": "6mo"
+    },
+    "risk": {
+      "min_rr": 2.0,
+      "entry_atr_buffer": 0.2,
+      "stop_atr_multiple": 1.0,
+      "extended_atr_multiple": 1.5
+    }
+  },
+  "symbols": {
+    "MES": {
+      "enabled": true,
+      "yf_symbol": "MES=F",
+      "tv_symbol": "CME_MINI:MES1!",
+      "label": "Micro E-mini S&P 500 Futures",
+      "asset_class": "future",
+      "currency": "USD",
+      "preferred_timeframe": "4h"
+    },
+    "IUHC": {
+      "enabled": true,
+      "yf_symbol": "IUHC.L",
+      "tv_symbol": "LSE:IUHC",
+      "label": "iShares S&P 500 Health Care Sector UCITS ETF",
+      "asset_class": "healthcare",
+      "currency": "USD",
+      "preferred_timeframe": "4h"
+    },
+    "GNOM": {
+      "enabled": true,
+      "yf_symbol": "GNOM.L",
+      "tv_symbol": "LSE:GNOM",
+      "label": "Global X Genomics & Biotechnology UCITS ETF",
+      "asset_class": "biotech",
+      "currency": "USD",
+      "preferred_timeframe": "4h"
+    },
+    "BOTZ": {
+      "enabled": true,
+      "yf_symbol": "BOTZ.L",
+      "tv_symbol": "LSE:BOTZ",
+      "label": "Global X Robotics & Artificial Intelligence UCITS ETF",
+      "asset_class": "ai_robotics",
+      "currency": "USD",
+      "preferred_timeframe": "4h"
+    },
+    "COPX": {
+      "enabled": true,
+      "yf_symbol": "COPX.L",
+      "tv_symbol": "LSE:COPX",
+      "label": "Global X Copper Miners UCITS ETF",
+      "asset_class": "copper",
+      "currency": "USD",
+      "preferred_timeframe": "4h",
+      "fallback_yf_symbols": [
+        "COPX"
+      ]
+    },
+    "XLUS": {
+      "enabled": true,
+      "yf_symbol": "XLUS.L",
+      "tv_symbol": "LSE:XLUS",
+      "label": "Invesco Utilities S&P US Select Sector UCITS ETF",
+      "asset_class": "utilities",
+      "currency": "USD",
+      "preferred_timeframe": "4h"
+    },
+    "SGLN": {
+      "enabled": true,
+      "yf_symbol": "SGLN.L",
+      "tv_symbol": "LSE:SGLN",
+      "label": "iShares Physical Gold ETC",
+      "asset_class": "gold",
+      "currency": "USD",
+      "preferred_timeframe": "4h",
+      "fallback_yf_symbols": [
+        "IGLN.L",
+        "IAUP.L"
+      ]
+    }
+  },
+  "regime_symbols": {
+    "sp500": "SPY",
+    "nasdaq": "QQQ",
+    "vix": "^VIX",
+    "copper": "HG=F",
+    "gold": "GC=F"
+  }
+}
