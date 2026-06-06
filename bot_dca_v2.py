@@ -173,21 +173,58 @@ def save_state(state: dict) -> None:
 # =========================
 # TELEGRAM
 # =========================
-def send_telegram(message: str) -> None:
-    token = os.getenv("TELEGRAM_TOKEN") or os.getenv("BOT_TOKEN")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID")
+def strip_html_tags(message: str) -> str:
+    """Fallback simplu pentru Telegram când parse_mode=HTML eșuează."""
+    return (
+        message
+        .replace("<b>", "")
+        .replace("</b>", "")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
+    )
+
+
+def send_telegram(message: str) -> bool:
+    token = (os.getenv("TELEGRAM_TOKEN") or os.getenv("BOT_TOKEN") or "").strip()
+    chat_id = (os.getenv("TELEGRAM_CHAT_ID") or os.getenv("CHAT_ID") or "").strip()
 
     if not token or not chat_id:
         print("Telegram TOKEN/CHAT_ID lipsă. Mesaj:")
         print(message)
-        return
+        return False
 
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = {"chat_id": chat_id, "text": message, "parse_mode": "HTML"}
+
+    payload = {
+        "chat_id": chat_id,
+        "text": message,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
+    }
+
     try:
-        requests.post(url, json=payload, timeout=15)
+        r = requests.post(url, json=payload, timeout=15)
+        print("Telegram status:", r.status_code)
+        print("Telegram response:", r.text[:500])
+
+        if r.status_code == 200:
+            return True
+
+        # Dacă HTML-ul pică din cauza caracterelor < sau >, retrimitem plain text.
+        plain_payload = {
+            "chat_id": chat_id,
+            "text": strip_html_tags(message),
+            "disable_web_page_preview": True,
+        }
+        r2 = requests.post(url, json=plain_payload, timeout=15)
+        print("Telegram fallback status:", r2.status_code)
+        print("Telegram fallback response:", r2.text[:500])
+        return r2.status_code == 200
+
     except Exception as e:
         print(f"Telegram error: {e}")
+        return False
 
 
 # =========================
@@ -570,7 +607,7 @@ def analyze_etf(name: str, meta: dict, config: dict, state: dict, regime: str, r
         if alert_once(state, key, min_hours):
             msg = (
                 f"🔴 <b>{name} — DCA PRUDENȚĂ</b>\n"
-                f"Preț sub EMA50 și EMA20 < EMA50.\n"
+                f"Preț sub EMA50 și EMA20 &lt; EMA50.\n"
                 f"Preț: {fmt(close_)} | EMA20: {fmt(float(last['EMA20']))} | EMA50: {fmt(ema50)}\n"
                 f"Regime: <b>{regime}</b>\n"
                 f"Sugestie: doar tranșe mici sau așteaptă stabilizare."
@@ -758,8 +795,8 @@ def run_once(config: dict, state: dict) -> None:
             continue
         try:
             for msg in analyze_etf(name, meta, config, state, regime, regime_details):
-                send_telegram(msg)
-                print(f"ETF alert sent: {name}")
+                ok = send_telegram(msg)
+                print(f"ETF alert {'sent' if ok else 'FAILED'}: {name}")
         except Exception as e:
             print(f"ETF error {name}: {e}")
 
@@ -768,8 +805,8 @@ def run_once(config: dict, state: dict) -> None:
             continue
         try:
             for msg in analyze_swing(name, meta, config, state, regime):
-                send_telegram(msg)
-                print(f"Swing alert sent: {name}")
+                ok = send_telegram(msg)
+                print(f"Swing alert {'sent' if ok else 'FAILED'}: {name}")
         except Exception as e:
             print(f"Swing error {name}: {e}")
 
