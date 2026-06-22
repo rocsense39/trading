@@ -2,7 +2,7 @@
 Bot_DCA V2.1 Clean
 ==================
 Google Colab + Telegram alert bot pentru:
-1) ETF DCA oportunist: SXR8, SXRV, XXME/XMME, H411, optional SGLD
+1) ETF DCA oportunist: SXR8, SXRV, XMME, H411, optional SGLD
 2) Alerte exacte: PUNE BUY LIMIT + BUY LIMIT HIT
 3) Market regime: SPY, QQQ, VIX => RISK ON / NEUTRAL / RISK OFF
 4) Swing satelit: AAOI, AIFS etc. cu Buy Limit / Buy Stop / Sell Stop / TP / trailing
@@ -84,9 +84,9 @@ DEFAULT_CONFIG = {
             "target_weight": 0.30,
             "currency": "EUR"
         },
-        "XXME": {
+        "XMME": {
             "enabled": True,
-            "xtb_symbol": "XXME.DE",
+            "xtb_symbol": "XMME.DE",
             "yf_symbol": "XMME.DE",
             "label": "MSCI Emerging Markets ETF",
             "target_weight": 0.15,
