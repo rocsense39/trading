@@ -1,4 +1,6 @@
-"""
+from pathlib import Path
+
+code = r'''"""
 Bot_DCA V2.2 — Portfolio + AI Infrastructure
 ===========================================
 
