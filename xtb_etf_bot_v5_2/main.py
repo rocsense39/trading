@@ -35,8 +35,7 @@ def build_report(config_path: str | Path = "config/portfolio.json") -> str:
         lines.append(f"{inst.key:<8} close={snap.close:9.3f} EMA50={snap.ema50:9.3f} EMA150={snap.ema150:9.3f} RSI14={snap.rsi14:5.1f} source={snap.source}")
 
     rows = build_allocation_rows(equity, cfg.instruments, snapshots)
-    lines.append("
-Allocation gaps:")
+    lines.append("Allocation gaps:")
     for r in rows:
         lines.append(f"{r.key:<8} target={r.target_weight:6.1%} actual={r.actual_weight:6.1%} gap={r.gap_eur:+8.2f} EUR gap_pct={r.gap_pct:+6.1%}")
 
