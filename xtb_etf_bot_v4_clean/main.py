@@ -7,6 +7,7 @@ from market.yahoo import fetch_snapshot
 from core.models import MarketSnapshot
 from strategy.regime import simple_regime
 from strategy.scoring import rank_candidates
+from strategy.sltp import build_trade_plan
 
 FALLBACK_PRICES = {
     "SXR8": 708.38, "SXRV": 1475.40, "QUALITY": 76.90,
@@ -30,7 +31,7 @@ def main() -> None:
     reserve = cash_reserve_eur(equity, reserve_pct)
     deployable = deployable_cash_eur(free_cash, equity, reserve_pct)
 
-    print("ETF Bot V4 Clean — Module 3 scoring engine")
+    print("ETF Bot V4 Clean — Module 4 SL/TP engine")
     print(f"Equity: {equity:.2f} EUR")
     print(f"Free cash: {free_cash:.2f} EUR")
     print(f"Reserve: {reserve:.2f} EUR")
@@ -64,6 +65,25 @@ def main() -> None:
     print(f"Sizing: {reason}")
     if ok:
         print(f"Proposed order: {amount:.2f} EUR")
+        inst = cfg.instruments[buy.key]
+        plan = build_trade_plan(inst, snapshots[buy.key])
+        print("\nSL/TP discipline:")
+        print(f"Order type: {plan.order_type}")
+        print(f"Entry: {plan.entry:.4f}")
+        if plan.stop_loss is not None:
+            print(f"Stop Loss: {plan.stop_loss:.4f}")
+        if plan.tp1 is not None:
+            print(f"TP1: {plan.tp1:.4f} — sell {plan.tp1_sell_pct:.0f}%")
+        else:
+            print("TP1: none")
+        if plan.tp2 is not None:
+            print(f"TP2: {plan.tp2:.4f} — sell {plan.tp2_sell_pct:.0f}%")
+        else:
+            print("TP2: none")
+        if plan.reward_risk is not None:
+            print(f"Reward/risk to TP1: {plan.reward_risk:.2f}")
+        print(f"Trailing: {plan.trailing_rule}")
+        print("Notes: " + "; ".join(plan.notes))
     else:
         print("No order proposed.")
 
