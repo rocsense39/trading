@@ -87,8 +87,13 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     delta = df["Close"].diff()
     gain = delta.clip(lower=0).rolling(RSI_LEN).mean()
     loss = (-delta.clip(upper=0)).rolling(RSI_LEN).mean()
+    # Robust RSI: when loss is zero and gain is positive, RSI should be 100,
+    # not NaN. The first implementation returned NaNs on clean rising test
+    # series and made the indicator table empty after dropna().
     rs = gain / loss.replace(0, pd.NA)
     df["RSI14"] = 100 - (100 / (1 + rs))
+    df.loc[(loss == 0) & (gain > 0), "RSI14"] = 100.0
+    df.loc[(loss == 0) & (gain == 0), "RSI14"] = 50.0
 
     df["HH20"] = df["High"].shift(1).rolling(20).max()
     df["LL20"] = df["Low"].shift(1).rolling(20).min()
