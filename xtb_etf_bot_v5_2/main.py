@@ -49,8 +49,7 @@ def build_report(config_path: str | Path = "config/portfolio.json") -> str:
     buy = next((c for c in ranked if c.decision == "BUY"), None)
     if not buy:
         lines.append("No BUY candidate.")
-        return "
-".join(lines)
+        return "".join(lines)
 
     row = next(r for r in rows if r.key == buy.key)
     ok, order_eur, reason = size_order(row, deployable, float(s["min_order_eur"]), float(s["max_order_eur"]))
