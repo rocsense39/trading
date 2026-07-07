@@ -1,11 +1,16 @@
-# XTB ETF Bot V4 Clean
+# XTB ETF Bot V4 Clean — Module 4
 
-Clean folder created to remove old V3/V4 file mismatches.
+Adds SL/TP discipline to the working Module 3 scoring engine.
 
-Run from the folder root:
+Run:
 
 ```bash
 pip install -r requirements.txt
-python main.py --once
 pytest -q
+python main.py --once
 ```
+
+Module 4 adds:
+- Core ETF plan: SL + partial TP1 only, no full exit.
+- Quality ETF plan: SL + no fixed TP, rebalance discipline.
+- Satellite ETF plan: SL + TP1/TP2 + trailing remainder.
