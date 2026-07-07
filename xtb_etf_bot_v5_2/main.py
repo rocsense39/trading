@@ -41,16 +41,14 @@ def build_report(config_path: str | Path = "config/portfolio.json") -> str:
 
     instruments = {i.key: i for i in cfg.instruments}
     ranked = rank_candidates(rows, instruments, snapshots, regime="RISK ON", regime_score=90)
-    lines.append("
-Regime: RISK ON score=90 | static module-5.2 regime")
+    lines.append("Regime: RISK ON score=90 | static module-5.2 regime")
     lines.append("Candidate rankings:")
     for c in ranked:
         lines.append(f"{c.key:<8} {c.decision:<4} score={c.score:3d} threshold={c.threshold:2d} confidence={c.confidence:3d}% — {', '.join(c.reasons)}")
 
     buy = next((c for c in ranked if c.decision == "BUY"), None)
     if not buy:
-        lines.append("
-No BUY candidate.")
+        lines.append("No BUY candidate.")
         return "
 ".join(lines)
 
@@ -65,8 +63,7 @@ Best candidate: {buy.key}")
 
     plan = build_trade_plan(instruments[buy.key], snapshots[buy.key], order_eur)
     lines.append(f"Proposed order: {order_eur:.2f} EUR")
-    lines.append("
-Trade plan:")
+    lines.append("Trade plan:")
     lines.append(f"Action: {plan.action} {plan.key}")
     lines.append(f"Entry: {fmt(plan.entry)}")
     lines.append(f"Quantity estimate: {plan.qty_est:.5f}")
