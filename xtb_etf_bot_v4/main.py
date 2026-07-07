@@ -5,42 +5,46 @@ from pathlib import Path
 
 from core.allocation import build_allocation_table, size_order
 from core.config import BotConfig
-from core.models import PriceSnapshot
-
-# Temporary static prices for Module 1. Module 2 will replace this with market data.
-STATIC_PRICES = {
-    "SXR8": 709.28,
-    "SXRV": 1490.80,
-    "QUALITY": 76.98,
-    "AIINFRA": 9.788,
-    "GINFRA": 6.145,
-    "XMME": 82.192,
-    "H411": 81.63,
-}
+from market.data import fetch_market
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config/portfolio.json")
     parser.add_argument("--once", action="store_true")
+    parser.add_argument("--no-static-fallback", action="store_true", help="Fail missing market data instead of using static fallback prices.")
     args = parser.parse_args()
 
     cfg = BotConfig.from_file(Path(args.config))
-    prices = {k: PriceSnapshot(key=k, close=v) for k, v in STATIC_PRICES.items()}
+    market = fetch_market(cfg, allow_static_fallback=not args.no_static_fallback)
 
     rows = build_allocation_table(
         equity_eur=cfg.account.equity_eur,
         free_cash_eur=cfg.account.free_cash_eur,
         targets=cfg.targets,
         positions=cfg.positions,
-        prices=prices,
+        prices=market.prices,
     )
 
-    print("ETF Bot V4 — Module 1 allocation engine")
+    print("ETF Bot V4 — Module 2 market data + allocation engine")
     print(f"Equity: {cfg.account.equity_eur:.2f} EUR")
     print(f"Free cash: {cfg.account.free_cash_eur:.2f} EUR")
     print(f"Reserve: {cfg.account.reserve_eur:.2f} EUR")
     print(f"Deployable cash: {cfg.account.deployable_cash_eur:.2f} EUR")
+    print()
+
+    print("Market snapshots:")
+    for key in cfg.targets:
+        snap = market.snapshots.get(key)
+        if snap is None:
+            print(f"{key:8s} missing — {market.missing.get(key, 'unknown reason')}")
+            continue
+        warning = " ⚠ fallback" if snap.source != "yahoo" else ""
+        print(
+            f"{key:8s} close={snap.close:9.3f} EMA50={snap.ema50:9.3f} "
+            f"EMA150={snap.ema150:9.3f} RSI14={snap.rsi14:5.1f} source={snap.source}{warning}"
+        )
+
     print()
     print("Allocation gaps:")
     for r in sorted(rows, key=lambda x: x.gap_eur, reverse=True):
