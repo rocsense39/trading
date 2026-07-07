@@ -53,12 +53,10 @@ def build_report(config_path: str | Path = "config/portfolio.json") -> str:
 
     row = next(r for r in rows if r.key == buy.key)
     ok, order_eur, reason = size_order(row, deployable, float(s["min_order_eur"]), float(s["max_order_eur"]))
-    lines.append(f"
-Best candidate: {buy.key}")
+    lines.append(f"Best candidate: {buy.key}")
     lines.append(f"Sizing: {reason}")
     if not ok:
-        return "
-".join(lines)
+        return "".join(lines)
 
     plan = build_trade_plan(instruments[buy.key], snapshots[buy.key], order_eur)
     lines.append(f"Proposed order: {order_eur:.2f} EUR")
@@ -71,8 +69,7 @@ Best candidate: {buy.key}")
     lines.append(f"TP2: {fmt(plan.tp2) if plan.tp2 else 'none'}" + (f" — sell {plan.tp2_sell_pct:.0f}%" if plan.tp2 else ""))
     lines.append(f"Trailing: {plan.trailing_rule}")
     lines.append(f"Reward/risk to TP1: {fmt(plan.reward_risk) if plan.reward_risk else 'n/a'}")
-    return "
-".join(lines)
+    return "".join(lines)
 
 
 def main():
