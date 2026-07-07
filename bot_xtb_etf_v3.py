@@ -108,7 +108,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "enabled": True,
             "sleeve": "quality",
             "xtb_symbol": "REPLACE_WITH_XTB_QUALITY_ETF",
-            "yf_symbol": "IWQU.DE",
+            "yf_symbol": "IS3Q.DE",
             "label": "Global Quality ETF — replace symbol if needed",
             "target_weight": 0.125,
             "currency": "EUR"
@@ -117,7 +117,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "enabled": True,
             "sleeve": "satellite",
             "xtb_symbol": "REPLACE_WITH_XTB_AI_INFRA_ETF",
-            "yf_symbol": "XAIX.DE",
+            "yf_symbol": "AIFS.DE",
             "label": "AI / Technology Infrastructure ETF — replace symbol if needed",
             "target_weight": 0.05,
             "currency": "EUR"
@@ -126,7 +126,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "enabled": True,
             "sleeve": "satellite",
             "xtb_symbol": "REPLACE_WITH_XTB_GLOBAL_INFRA_ETF",
-            "yf_symbol": "IGLN.DE",
+            "yf_symbol": "CBUX.DE",
             "label": "Global Infrastructure ETF — replace symbol if needed",
             "target_weight": 0.025,
             "currency": "EUR"
