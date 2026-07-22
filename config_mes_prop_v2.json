@@ -1,0 +1,29 @@
+{
+  "symbol": "MES=F",
+  "tradingview_symbol": "CME_MINI:MES1!",
+  "scan_minutes": 15,
+  "risk": {
+    "max_risk_usd": 150.0,
+    "point_value_usd": 5.0,
+    "tick_size": 0.25,
+    "min_rr": 2.0,
+    "max_contracts": 1,
+    "min_stop_points": 5.0,
+    "max_stop_points": 30.0
+  },
+  "filters": {
+    "allow_long": true,
+    "allow_short": true,
+    "regular_session_only": true,
+    "session_start_ny": "09:35",
+    "session_end_ny": "15:30",
+    "max_signals_per_day": 1,
+    "signal_valid_hours": 3,
+    "max_entry_distance_atr": 0.35,
+    "vix_long_limit": 25.0,
+    "vix_short_floor": 16.0,
+    "require_volume_confirmation": false,
+    "volume_multiple": 1.1
+  },
+  "manual_blackouts": []
+}
