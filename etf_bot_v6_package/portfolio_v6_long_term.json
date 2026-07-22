@@ -1,0 +1,82 @@
+{
+  "settings": {
+    "holdings_as_of": "2026-07-22",
+    "equity_eur": 974.86,
+    "free_cash_eur": 1.49,
+    "cash_reserve_pct": 0.05,
+    "rebalance_band_abs": 0.02,
+    "min_order_eur": 25.0,
+    "max_order_eur": 100.0,
+    "max_config_age_days": 7,
+    "extended_atr_multiple": 1.5,
+    "core_risk_off_multiplier": 0.5
+  },
+  "instruments": [
+    {
+      "key": "SXR8",
+      "sleeve": "core",
+      "target_weight": 0.4275,
+      "allow_buy": true,
+      "positions": [{"xtb_symbol": "SXR8.DE", "yf_symbol": "SXR8.DE", "qty": 0.42, "currency": "EUR"}]
+    },
+    {
+      "key": "SXRV",
+      "sleeve": "core_growth",
+      "target_weight": 0.2175,
+      "allow_buy": true,
+      "positions": [{"xtb_symbol": "SXRV.DE", "yf_symbol": "SXRV.DE", "qty": 0.1695, "currency": "EUR"}]
+    },
+    {
+      "key": "QUALITY",
+      "sleeve": "quality",
+      "target_weight": 0.11875,
+      "allow_buy": true,
+      "positions": [{"xtb_symbol": "IS3Q.DE", "yf_symbol": "IS3Q.DE", "qty": 0.2653, "currency": "EUR"}]
+    },
+    {
+      "key": "AIINFRA",
+      "sleeve": "satellite",
+      "target_weight": 0.0475,
+      "allow_buy": true,
+      "positions": [{"xtb_symbol": "AIFS.DE", "yf_symbol": "AIFS.DE", "qty": 0.0, "currency": "EUR"}]
+    },
+    {
+      "key": "GINFRA",
+      "sleeve": "satellite",
+      "target_weight": 0.02375,
+      "allow_buy": true,
+      "positions": [{"xtb_symbol": "CBUX.DE", "yf_symbol": "CBUX.DE", "qty": 0.9632, "currency": "EUR"}]
+    },
+    {
+      "key": "XMME",
+      "sleeve": "satellite",
+      "target_weight": 0.0475,
+      "allow_buy": true,
+      "positions": [
+        {"xtb_symbol": "XMME.DE", "yf_symbol": "XMME.DE", "qty": 0.3, "currency": "EUR"},
+        {"xtb_symbol": "XMME.UK", "yf_symbol": "XMME.L", "qty": 0.1064, "currency": "USD"}
+      ]
+    },
+    {
+      "key": "H411",
+      "sleeve": "satellite",
+      "target_weight": 0.0475,
+      "allow_buy": true,
+      "positions": [{"xtb_symbol": "H411.DE", "yf_symbol": "HMAF.L", "qty": 0.07, "currency": "USD"}]
+    },
+    {
+      "key": "XEON",
+      "sleeve": "reserve",
+      "target_weight": 0.05,
+      "allow_buy": true,
+      "positions": [{"xtb_symbol": "XEON.DE", "yf_symbol": "XEON.DE", "qty": 1.0, "currency": "EUR"}]
+    },
+    {
+      "key": "IUHC_LEGACY",
+      "sleeve": "legacy",
+      "target_weight": 0.02,
+      "allow_buy": false,
+      "positions": [{"xtb_symbol": "IUHC.UK", "yf_symbol": "IUHC.L", "qty": 19.4637, "currency": "USD"}]
+    }
+  ]
+}
