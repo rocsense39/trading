@@ -1,0 +1,140 @@
+{
+  "settings": {
+    "max_snapshot_age_hours": 24,
+    "rebalance_band_abs": 0.025,
+    "extended_atr_multiple": 1.0,
+    "rsi_wait_level": 72,
+    "execute_score": 78,
+    "small_score": 68,
+    "wait_score": 55,
+    "small_order_multiplier": 0.5,
+    "min_order_eur": 20,
+    "max_order_eur": 70,
+    "max_weekly_deployment_eur": 90,
+    "deployable_fraction": 0.6,
+    "max_new_orders_per_week": 2
+  },
+  "overrides": {
+    "free_cash_eur": 150.0,
+    "equity_eur": null,
+    "ignore_pending_order_ids": [],
+    "extra_pending_orders": [
+      {
+        "symbol": "IS3Q.DE",
+        "qty": 0.27,
+        "price": 76.6,
+        "side": "BUY",
+        "order_type": "limit"
+      },
+      {
+        "symbol": "IS3Q.DE",
+        "qty": 0.27,
+        "price": 75.7,
+        "side": "BUY",
+        "order_type": "limit"
+      }
+    ]
+  },
+  "instruments": [
+    {
+      "key": "SXR8",
+      "xtb_symbols": [
+        "SXR8.DE"
+      ],
+      "yf_symbol": "SXR8.DE",
+      "currency": "EUR",
+      "sleeve": "core",
+      "target_weight": 0.43,
+      "allow_buy": true
+    },
+    {
+      "key": "SXRV",
+      "xtb_symbols": [
+        "SXRV.DE"
+      ],
+      "yf_symbol": "SXRV.DE",
+      "currency": "EUR",
+      "sleeve": "core_growth",
+      "target_weight": 0.22,
+      "allow_buy": true
+    },
+    {
+      "key": "QUALITY",
+      "xtb_symbols": [
+        "IS3Q.DE"
+      ],
+      "yf_symbol": "IS3Q.DE",
+      "currency": "EUR",
+      "sleeve": "core",
+      "target_weight": 0.12,
+      "allow_buy": true
+    },
+    {
+      "key": "AIINFRA",
+      "xtb_symbols": [
+        "AIFS.DE"
+      ],
+      "yf_symbol": "AIFS.DE",
+      "currency": "EUR",
+      "sleeve": "satellite",
+      "target_weight": 0.05,
+      "allow_buy": true
+    },
+    {
+      "key": "GINFRA",
+      "xtb_symbols": [
+        "CBUX.DE"
+      ],
+      "yf_symbol": "CBUX.DE",
+      "currency": "EUR",
+      "sleeve": "satellite",
+      "target_weight": 0.04,
+      "allow_buy": true
+    },
+    {
+      "key": "XMME",
+      "xtb_symbols": [
+        "XMME.DE",
+        "XMME.UK"
+      ],
+      "yf_symbol": "XMME.DE",
+      "currency": "EUR",
+      "sleeve": "diversifier",
+      "target_weight": 0.05,
+      "allow_buy": true
+    },
+    {
+      "key": "H411",
+      "xtb_symbols": [
+        "H411.DE"
+      ],
+      "yf_symbol": "H411.DE",
+      "currency": "EUR",
+      "sleeve": "satellite",
+      "target_weight": 0.02,
+      "allow_buy": true
+    },
+    {
+      "key": "XEON",
+      "xtb_symbols": [
+        "XEON.DE"
+      ],
+      "yf_symbol": "XEON.DE",
+      "currency": "EUR",
+      "sleeve": "reserve",
+      "target_weight": 0.05,
+      "allow_buy": true
+    },
+    {
+      "key": "IUHC_LEGACY",
+      "xtb_symbols": [
+        "IUHC.UK"
+      ],
+      "yf_symbol": "IUHC.L",
+      "currency": "USD",
+      "sleeve": "legacy",
+      "target_weight": 0.02,
+      "allow_buy": false
+    }
+  ]
+}
